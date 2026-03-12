@@ -139,6 +139,13 @@ def resolve_query_value(query_items: list[tuple[str, str]], key: str) -> str | N
     return None
 
 
+def resolve_env_value() -> str | None:
+    value = os.environ.get("TUQU_USER_SERVICE_KEY")
+    if value:
+        return value
+    return None
+
+
 def resolve_service_key(body: Any | None, query_items: list[tuple[str, str]]) -> str | None:
     if isinstance(body, dict):
         for key in ("serviceKey", "userKey"):
@@ -151,7 +158,7 @@ def resolve_service_key(body: Any | None, query_items: list[tuple[str, str]]) ->
         if query_value:
             return query_value
 
-    return os.environ.get("TUQU_SERVICE_KEY") or os.environ.get("TUQU_USER_KEY")
+    return resolve_env_value()
 
 
 def prepare_body(auth_mode: str, body: Any | None) -> Any | None:
@@ -174,10 +181,11 @@ def prepare_body(auth_mode: str, body: Any | None) -> Any | None:
         raise ValueError("Body-auth endpoints require a JSON object body.")
 
     if "userKey" not in body:
-        user_key = os.environ.get("TUQU_USER_KEY")
+        user_key = resolve_env_value()
         if not user_key:
             raise ValueError(
-                "Missing TUQU_USER_KEY. Set the environment variable or provide userKey in the JSON body."
+                "Missing TUQU_USER_SERVICE_KEY. "
+                "Set that environment variable or provide userKey in the JSON body."
             )
         body["userKey"] = user_key
 
@@ -226,17 +234,17 @@ def main() -> int:
         }
 
         if auth_mode == "api-key":
-            api_key = os.environ.get("TUQU_API_KEY")
+            api_key = resolve_env_value()
             if not api_key:
-                raise ValueError("Missing TUQU_API_KEY for this endpoint.")
+                raise ValueError("Missing TUQU_USER_SERVICE_KEY for this endpoint.")
             headers["x-api-key"] = api_key
 
         if auth_mode == "service-key":
             service_key = resolve_service_key(body, query_items)
             if not service_key:
                 raise ValueError(
-                    "Missing service key. Set TUQU_SERVICE_KEY or TUQU_USER_KEY, "
-                    "pass --query serviceKey=..., or provide serviceKey in the JSON body."
+                    "Missing service key. Set TUQU_USER_SERVICE_KEY, pass --query "
+                    "serviceKey=..., or provide serviceKey in the JSON body."
                 )
             headers["Authorization"] = f"Bearer {service_key}"
 

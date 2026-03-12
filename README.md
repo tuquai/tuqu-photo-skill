@@ -9,9 +9,7 @@ Set the environment variables used by the skill and helper:
 ```bash
 export TUQU_BASE_URL=https://photo.tuqu.ai
 export TUQU_BILLING_BASE_URL=https://billing.tuqu.ai/dream-weaver
-export TUQU_USER_KEY=your_user_key
-export TUQU_API_KEY=your_api_key
-export TUQU_SERVICE_KEY=your_service_key
+export TUQU_USER_SERVICE_KEY=your_shared_key
 ```
 
 Run the bundled helper from the skill directory:
@@ -54,11 +52,7 @@ dist/
 | --- | --- | --- |
 | `TUQU_BASE_URL` | Photo, catalog, history, and balance APIs | Defaults to `https://photo.tuqu.ai` |
 | `TUQU_BILLING_BASE_URL` | Recharge APIs | Defaults to `https://billing.tuqu.ai/dream-weaver` |
-| `TUQU_USER_KEY` | `/api/v2/*`, `/api/billing/balance` | Sent in the JSON body as `userKey` |
-| `TUQU_API_KEY` | `/api/characters`, `/api/history` | Sent as `x-api-key` |
-| `TUQU_SERVICE_KEY` | Recharge endpoints | Sent as `Authorization: Bearer <serviceKey>` |
-
-`serviceKey` and `userKey` refer to the same underlying credential, but the APIs expect them in different places depending on the endpoint.
+| `TUQU_USER_SERVICE_KEY` | `/api/v2/*`, `/api/billing/balance`, `/api/characters`, `/api/history`, recharge endpoints | Reused as `userKey`, `x-api-key`, or bearer `serviceKey` based on the endpoint |
 
 ## Common Tasks
 

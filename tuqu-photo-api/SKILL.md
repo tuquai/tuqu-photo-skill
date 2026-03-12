@@ -15,9 +15,7 @@ Set these before making authenticated requests:
 
 - `TUQU_BASE_URL=https://photo.tuqu.ai`
 - `TUQU_BILLING_BASE_URL=https://billing.tuqu.ai/dream-weaver`
-- `TUQU_USER_KEY=...` for `/api/v2/generate-image`, `/api/v2/apply-preset`, `/api/v2/generate-for-character`, `/api/billing/balance`, and recharge endpoints
-- `TUQU_SERVICE_KEY=...` optional alias for recharge endpoints if you want to separate payment credentials from `TUQU_USER_KEY`
-- `TUQU_API_KEY=...` for `/api/characters` and `/api/history`
+- `TUQU_USER_SERVICE_KEY=...` for `/api/v2/generate-image`, `/api/v2/apply-preset`, `/api/v2/generate-for-character`, `/api/billing/balance`, `/api/characters`, `/api/history`, and recharge endpoints
 
 Prefer `scripts/tuqu_request.py` over ad-hoc `curl` so host selection, auth, and JSON handling stay consistent.
 
@@ -38,7 +36,7 @@ Read [references/workflows.md](references/workflows.md) for end-to-end task reci
 
 ## Follow Operating Rules
 
-- Verify the auth mode before every request. Do not send `TUQU_API_KEY` to body-auth endpoints or rely on header auth for `/api/v2/generate-for-character`.
+- Verify the auth mode before every request. Even when `TUQU_USER_SERVICE_KEY` backs every call, `/api/v2/generate-for-character` still requires body `userKey`, `/api/characters` and `/api/history` still require `x-api-key`, and recharge endpoints still require bearer auth.
 - Verify the host before every request. Recharge endpoints live on `TUQU_BILLING_BASE_URL`, not `TUQU_BASE_URL`.
 - Send JSON with `Content-Type: application/json`.
 - Send base64 images as full data URLs such as `data:image/jpeg;base64,...`, not raw base64 fragments.
@@ -106,7 +104,7 @@ The helper auto-detects both host and auth for the supported endpoints in this s
 - On `INSUFFICIENT_BALANCE`, stop and report the remaining balance if available.
 - On `INVALID_REQUEST`, compare the payload against [references/endpoints.md](references/endpoints.md) and call out the missing field explicitly.
 - On `NOT_FOUND` from `/api/v2/apply-preset`, re-run `/api/catalog`; the `presetId` is wrong or no longer active.
-- On `UNAUTHORIZED`, verify whether the endpoint expects `TUQU_USER_KEY` or `TUQU_API_KEY`.
+- On `UNAUTHORIZED`, verify whether the endpoint expects body `userKey`, header `x-api-key`, or bearer `serviceKey`.
 - On recharge `UNAUTHORIZED`, verify the service key has not been revoked or frozen and that you are sending it to the billing host.
 - On `PAYMENT_NOT_CONFIGURED`, report which channel is missing at the project or global config layer.
 - On `CURRENCY_NOT_SUPPORTED`, stop and explain that WeChat only supports direct `CNY` or `JPY`, plus `USD` via project FX conversion.
