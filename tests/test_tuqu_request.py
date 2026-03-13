@@ -13,10 +13,6 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 MODULE_PATH = ROOT / "tuqu-photo-api" / "scripts" / "tuqu_request.py"
 
 
-def build_legacy_env_name(*parts):
-    return "_".join(("TUQU",) + parts)
-
-
 def load_module():
     spec = importlib.util.spec_from_file_location("tuqu_request", MODULE_PATH)
     module = importlib.util.module_from_spec(spec)
@@ -43,26 +39,20 @@ class TuquRequestEnvTests(unittest.TestCase):
     def setUp(self):
         self.module = load_module()
 
-    def test_prepare_body_rejects_legacy_user_key_env_var(self):
-        with mock.patch.dict(
-            os.environ,
-            {build_legacy_env_name("USER", "KEY"): "legacy-key"},
-            clear=True,
-        ):
-            with self.assertRaisesRegex(ValueError, "TUQU_USER_SERVICE_KEY"):
-                self.module.prepare_body("user-key", {})
+    def test_prepare_body_uses_explicit_service_key_for_user_key(self):
+        body = self.module.prepare_body("user-key", {}, service_key="role-key")
+        self.assertEqual(body["userKey"], "role-key")
 
-    def test_prepare_body_uses_unified_env_var_for_user_key(self):
+    def test_prepare_body_requires_explicit_service_key_when_missing(self):
         with mock.patch.dict(
             os.environ,
             {"TUQU_USER_SERVICE_KEY": "shared-key"},
             clear=True,
         ):
-            body = self.module.prepare_body("user-key", {})
+            with self.assertRaisesRegex(ValueError, "--service-key"):
+                self.module.prepare_body("user-key", {})
 
-        self.assertEqual(body["userKey"], "shared-key")
-
-    def test_main_uses_unified_env_var_for_api_key_header(self):
+    def test_main_uses_explicit_service_key_for_api_key_header(self):
         request_capture = {}
 
         def fake_urlopen(request, timeout):
@@ -77,23 +67,20 @@ class TuquRequestEnvTests(unittest.TestCase):
             json=None,
             body_file=None,
             auth_mode="auto",
+            service_key="role-key",
             timeout=5,
         )
 
-        with mock.patch.dict(
-            os.environ,
-            {"TUQU_USER_SERVICE_KEY": "shared-key"},
-            clear=True,
-        ):
+        with mock.patch.dict(os.environ, {}, clear=True):
             with mock.patch.object(self.module, "parse_args", return_value=args):
                 with mock.patch.object(self.module.urllib.request, "urlopen", side_effect=fake_urlopen):
                     with contextlib.redirect_stdout(io.StringIO()):
                         exit_code = self.module.main()
 
         self.assertEqual(exit_code, 0)
-        self.assertEqual(request_capture["X-api-key"], "shared-key")
+        self.assertEqual(request_capture["X-api-key"], "role-key")
 
-    def test_main_rejects_legacy_api_key_env_var(self):
+    def test_main_ignores_tuqu_user_service_key_env_var(self):
         request_called = False
 
         def fake_urlopen(request, timeout):
@@ -109,12 +96,13 @@ class TuquRequestEnvTests(unittest.TestCase):
             json=None,
             body_file=None,
             auth_mode="auto",
+            service_key=None,
             timeout=5,
         )
 
         with mock.patch.dict(
             os.environ,
-            {build_legacy_env_name("API", "KEY"): "legacy-key"},
+            {"TUQU_USER_SERVICE_KEY": "shared-key"},
             clear=True,
         ):
             with mock.patch.object(self.module, "parse_args", return_value=args):
@@ -125,9 +113,9 @@ class TuquRequestEnvTests(unittest.TestCase):
 
         self.assertEqual(exit_code, 1)
         self.assertFalse(request_called)
-        self.assertIn("TUQU_USER_SERVICE_KEY", stderr.getvalue())
+        self.assertIn("--service-key", stderr.getvalue())
 
-    def test_main_uses_unified_env_var_for_service_key_header(self):
+    def test_main_uses_explicit_service_key_for_service_key_header(self):
         request_capture = {}
 
         def fake_urlopen(request, timeout):
@@ -142,23 +130,48 @@ class TuquRequestEnvTests(unittest.TestCase):
             json=None,
             body_file=None,
             auth_mode="auto",
+            service_key="role-key",
             timeout=5,
         )
 
-        with mock.patch.dict(
-            os.environ,
-            {"TUQU_USER_SERVICE_KEY": "shared-key"},
-            clear=True,
-        ):
+        with mock.patch.dict(os.environ, {}, clear=True):
             with mock.patch.object(self.module, "parse_args", return_value=args):
                 with mock.patch.object(self.module.urllib.request, "urlopen", side_effect=fake_urlopen):
                     with contextlib.redirect_stdout(io.StringIO()):
                         exit_code = self.module.main()
 
         self.assertEqual(exit_code, 0)
-        self.assertEqual(request_capture["Authorization"], "Bearer shared-key")
+        self.assertEqual(request_capture["Authorization"], "Bearer role-key")
 
-    def test_main_rejects_legacy_service_key_env_var(self):
+    def test_main_uses_explicit_service_key_for_user_key_body(self):
+        request_capture = {}
+
+        def fake_urlopen(request, timeout):
+            request_capture["body"] = json.loads(request.data.decode("utf-8"))
+            return FakeResponse(json.dumps({"ok": True}).encode("utf-8"))
+
+        args = argparse.Namespace(
+            method="POST",
+            path="/api/v2/generate-image",
+            base_url=None,
+            query=[],
+            json='{"prompt":"portrait"}',
+            body_file=None,
+            auth_mode="auto",
+            service_key="role-key",
+            timeout=5,
+        )
+
+        with mock.patch.dict(os.environ, {}, clear=True):
+            with mock.patch.object(self.module, "parse_args", return_value=args):
+                with mock.patch.object(self.module.urllib.request, "urlopen", side_effect=fake_urlopen):
+                    with contextlib.redirect_stdout(io.StringIO()):
+                        exit_code = self.module.main()
+
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(request_capture["body"]["userKey"], "role-key")
+
+    def test_main_requires_explicit_service_key_for_service_key_header(self):
         request_called = False
 
         def fake_urlopen(request, timeout):
@@ -174,14 +187,11 @@ class TuquRequestEnvTests(unittest.TestCase):
             json=None,
             body_file=None,
             auth_mode="auto",
+            service_key=None,
             timeout=5,
         )
 
-        with mock.patch.dict(
-            os.environ,
-            {build_legacy_env_name("SERVICE", "KEY"): "legacy-key"},
-            clear=True,
-        ):
+        with mock.patch.dict(os.environ, {}, clear=True):
             with mock.patch.object(self.module, "parse_args", return_value=args):
                 with mock.patch.object(self.module.urllib.request, "urlopen", side_effect=fake_urlopen):
                     with contextlib.redirect_stderr(io.StringIO()) as stderr:
@@ -190,7 +200,7 @@ class TuquRequestEnvTests(unittest.TestCase):
 
         self.assertEqual(exit_code, 1)
         self.assertFalse(request_called)
-        self.assertIn("TUQU_USER_SERVICE_KEY", stderr.getvalue())
+        self.assertIn("--service-key", stderr.getvalue())
 
 
 if __name__ == "__main__":

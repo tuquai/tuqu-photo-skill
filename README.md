@@ -4,13 +4,15 @@ A local skill package for working with the Tuqu Dream Weaver photo and billing A
 
 ## Quick Start
 
-Set the environment variables used by the skill and helper:
+Set the optional base URL overrides:
 
 ```bash
 export TUQU_BASE_URL=https://photo.tuqu.ai
 export TUQU_BILLING_BASE_URL=https://billing.tuqu.ai/dream-weaver
-export TUQU_USER_SERVICE_KEY=your_shared_key
 ```
+
+Authenticated calls must provide a service key explicitly on each request. Do not rely on a shared
+credential environment variable; different OpenClaw roles can carry different keys.
 
 Run the bundled helper from the skill directory:
 
@@ -19,8 +21,10 @@ python3 tuqu-photo-api/scripts/tuqu_request.py GET /api/catalog --query type=all
 python3 tuqu-photo-api/scripts/tuqu_request.py POST /api/enhance-prompt \
   --json '{"category":"portrait","prompt":"soft editorial portrait with window light"}'
 python3 tuqu-photo-api/scripts/tuqu_request.py POST /api/v2/generate-image \
+  --service-key <role-service-key> \
   --json '{"prompt":"cinematic portrait in warm sunset light"}'
-python3 tuqu-photo-api/scripts/tuqu_request.py POST /api/billing/balance
+python3 tuqu-photo-api/scripts/tuqu_request.py POST /api/billing/balance \
+  --service-key <role-service-key>
 ```
 
 The helper auto-selects the correct host and authentication mode for the supported endpoints.
@@ -52,7 +56,10 @@ dist/
 | --- | --- | --- |
 | `TUQU_BASE_URL` | Photo, catalog, history, and balance APIs | Defaults to `https://photo.tuqu.ai` |
 | `TUQU_BILLING_BASE_URL` | Recharge APIs | Defaults to `https://billing.tuqu.ai/dream-weaver` |
-| `TUQU_USER_SERVICE_KEY` | `/api/v2/*`, `/api/billing/balance`, `/api/characters`, `/api/history`, recharge endpoints | Reused as `userKey`, `x-api-key`, or bearer `serviceKey` based on the endpoint |
+
+Authenticated requests pass `--service-key <role-service-key>` instead of reading a shared
+credential from the environment. The helper maps that value to `userKey`, `x-api-key`, or bearer
+`serviceKey` based on the endpoint.
 
 ## Common Tasks
 
@@ -74,6 +81,7 @@ dist/
 
 - Use `tuqu-photo-api/scripts/tuqu_request.py` instead of ad-hoc `curl` when possible.
 - Keep the endpoint/auth rules in `SKILL.md` aligned with the helper logic in `scripts/tuqu_request.py`.
+- Keep credential handling explicit per request so multiple roles can use different service keys safely.
 - Treat `dist/` as generated output.
 
 ## License

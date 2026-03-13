@@ -9,13 +9,15 @@ description: Use when interacting with the Tuqu Dream Weaver photo or billing AP
 
 Use this skill to call the Dream Weaver APIs safely and consistently across both hosts: `https://photo.tuqu.ai` for image and catalog flows, and `https://billing.tuqu.ai/dream-weaver` for recharge flows. The main failure mode is choosing the wrong host or authentication mode: body `userKey` for `/api/billing/balance` and all v2 generation endpoints, header `x-api-key` for character management and history APIs, `Authorization: Bearer <serviceKey>` for recharge endpoints, and no auth for discovery and prompt enhancement. `serviceKey` and `userKey` refer to the same credential.
 
-## Set Environment Variables
+## Set Base URLs Only
 
-Set these before making authenticated requests:
+Set these only when overriding the defaults:
 
 - `TUQU_BASE_URL=https://photo.tuqu.ai`
 - `TUQU_BILLING_BASE_URL=https://billing.tuqu.ai/dream-weaver`
-- `TUQU_USER_SERVICE_KEY=...` for `/api/v2/generate-image`, `/api/v2/apply-preset`, `/api/v2/generate-for-character`, `/api/billing/balance`, `/api/characters`, `/api/history`, and recharge endpoints
+
+Do not rely on a shared credential environment variable. The agent must provide the credential explicitly on
+every authenticated request so multiple roles can use different service keys safely.
 
 Prefer `scripts/tuqu_request.py` over ad-hoc `curl` so host selection, auth, and JSON handling stay consistent.
 
@@ -36,8 +38,9 @@ Read [references/workflows.md](references/workflows.md) for end-to-end task reci
 
 ## Follow Operating Rules
 
-- Verify the auth mode before every request. Even when `TUQU_USER_SERVICE_KEY` backs every call, `/api/v2/generate-for-character` still requires body `userKey`, `/api/characters` and `/api/history` still require `x-api-key`, and recharge endpoints still require bearer auth.
+- Verify the auth mode before every request. Even when the same credential backs multiple endpoints, `/api/v2/generate-for-character` still requires body `userKey`, `/api/characters` and `/api/history` still require `x-api-key`, and recharge endpoints still require bearer auth.
 - Verify the host before every request. Recharge endpoints live on `TUQU_BILLING_BASE_URL`, not `TUQU_BASE_URL`.
+- Provide the credential explicitly on every authenticated helper call with `--service-key <role-service-key>`, unless the workflow explicitly requires you to place it in the JSON body or query string.
 - Send JSON with `Content-Type: application/json`.
 - Send base64 images as full data URLs such as `data:image/jpeg;base64,...`, not raw base64 fragments.
 - Treat `/api/catalog` as the source of truth for `presetId`, preset type, and variable names. Do not guess placeholders.
@@ -59,13 +62,16 @@ python3 scripts/tuqu_request.py GET /api/model-costs
 python3 scripts/tuqu_request.py POST /api/enhance-prompt \
   --json '{"category":"portrait","prompt":"soft editorial portrait with window light"}'
 python3 scripts/tuqu_request.py POST /api/v2/generate-image \
+  --service-key <role-service-key> \
   --body-file payloads/generate-image.json
-python3 scripts/tuqu_request.py GET /api/v1/recharge/plans
+python3 scripts/tuqu_request.py GET /api/v1/recharge/plans \
+  --service-key <role-service-key>
 python3 scripts/tuqu_request.py POST /api/v1/recharge/stripe \
+  --service-key <role-service-key> \
   --json '{"planId":"698b7fead4c733c85f2a9c74","successUrl":"https://your-app.com/payment/success","cancelUrl":"https://your-app.com/payment/cancel"}'
 ```
 
-The helper auto-detects both host and auth for the supported endpoints in this skill. Override with `--base-url` or `--auth-mode` only when you have a documented reason.
+The helper auto-detects both host and auth for the supported endpoints in this skill. Pass `--service-key` on every authenticated call. Override with `--base-url` or `--auth-mode` only when you have a documented reason.
 
 ## Handle Common Tasks
 
@@ -107,7 +113,7 @@ The helper auto-detects both host and auth for the supported endpoints in this s
 - On `INSUFFICIENT_BALANCE`, stop and report the remaining balance if available.
 - On `INVALID_REQUEST`, compare the payload against [references/endpoints.md](references/endpoints.md) and call out the missing field explicitly.
 - On `NOT_FOUND` from `/api/v2/apply-preset`, re-run `/api/catalog`; the `presetId` is wrong or no longer active.
-- On `UNAUTHORIZED`, verify whether the endpoint expects body `userKey`, header `x-api-key`, or bearer `serviceKey`.
+- On `UNAUTHORIZED`, verify whether the endpoint expects body `userKey`, header `x-api-key`, or bearer `serviceKey`, and verify that the caller supplied the intended role-specific credential.
 - On recharge `UNAUTHORIZED`, verify the service key has not been revoked or frozen and that you are sending it to the billing host.
 - On `PAYMENT_NOT_CONFIGURED`, report which channel is missing at the project or global config layer.
 - On `CURRENCY_NOT_SUPPORTED`, stop and explain that WeChat only supports direct `CNY` or `JPY`, plus `USD` via project FX conversion.
