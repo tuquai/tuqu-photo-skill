@@ -10,7 +10,7 @@ from unittest import mock
 
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-MODULE_PATH = ROOT / "tuqu-photo-api" / "scripts" / "tuqu_request.py"
+MODULE_PATH = ROOT / "scripts" / "tuqu_request.py"
 
 
 def load_module():

@@ -17,13 +17,13 @@ credential environment variable; different OpenClaw roles can carry different ke
 Run the bundled helper from the skill directory:
 
 ```bash
-python3 tuqu-photo-api/scripts/tuqu_request.py GET /api/catalog --query type=all
-python3 tuqu-photo-api/scripts/tuqu_request.py POST /api/enhance-prompt \
+python3 scripts/tuqu_request.py GET /api/catalog --query type=all
+python3 scripts/tuqu_request.py POST /api/enhance-prompt \
   --json '{"category":"portrait","prompt":"soft editorial portrait with window light"}'
-python3 tuqu-photo-api/scripts/tuqu_request.py POST /api/v2/generate-image \
+python3 scripts/tuqu_request.py POST /api/v2/generate-image \
   --service-key <role-service-key> \
   --json '{"prompt":"cinematic portrait in warm sunset light"}'
-python3 tuqu-photo-api/scripts/tuqu_request.py POST /api/billing/balance \
+python3 scripts/tuqu_request.py POST /api/billing/balance \
   --service-key <role-service-key>
 ```
 
@@ -39,13 +39,14 @@ The helper auto-selects the correct host and authentication mode for the support
 ## Repository Layout
 
 ```text
-tuqu-photo-api/
-  SKILL.md                  Main skill instructions
-  references/
-    endpoints.md            Endpoint request and response details
-    workflows.md            Task-oriented API workflows
-  scripts/
-    tuqu_request.py         Local request helper
+SKILL.md                    Main skill instructions
+references/
+  endpoints.md              Endpoint request and response details
+  workflows.md              Task-oriented API workflows
+scripts/
+  tuqu_request.py           Local request helper
+tests/
+  test_tuqu_request.py      Helper unit tests
 dist/
   tuqu-photo-api.skill      Generated skill artifact
 ```
@@ -73,13 +74,13 @@ credential from the environment. The helper maps that value to `userKey`, `x-api
 
 ## Documentation
 
-- [Skill instructions](./tuqu-photo-api/SKILL.md)
-- [Endpoint reference](./tuqu-photo-api/references/endpoints.md)
-- [Workflow recipes](./tuqu-photo-api/references/workflows.md)
+- [Skill instructions](./SKILL.md)
+- [Endpoint reference](./references/endpoints.md)
+- [Workflow recipes](./references/workflows.md)
 
 ## Development Notes
 
-- Use `tuqu-photo-api/scripts/tuqu_request.py` instead of ad-hoc `curl` when possible.
+- Use `scripts/tuqu_request.py` instead of ad-hoc `curl` when possible.
 - Keep the endpoint/auth rules in `SKILL.md` aligned with the helper logic in `scripts/tuqu_request.py`.
 - Keep credential handling explicit per request so multiple roles can use different service keys safely.
 - Treat `dist/` as generated output.
