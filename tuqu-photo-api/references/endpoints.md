@@ -32,7 +32,7 @@
 | Endpoint | Method | Auth | Notes |
 | --- | --- | --- | --- |
 | `/api/v2/generate-image` | `POST` | body `userKey` | At least one of `prompt`, `referenceImages`, or `referenceImageUrls` is required |
-| `/api/v2/apply-preset` | `POST` | body `userKey` | Requires `presetId` from `/api/catalog` |
+| `/api/v2/apply-preset` | `POST` | body `userKey` | Requires `presetId` from `/api/catalog` and at least one source image |
 | `/api/v2/generate-for-character` | `POST` | body `userKey` | No automatic prompt enhancement; returns `404` before billing when characters are missing |
 | `/api/enhance-prompt` | `POST` | none | Returns text only |
 | `/api/catalog` | `GET` | none | Public preset and usage discovery |
@@ -129,7 +129,7 @@ Success fields:
 
 - Method: `POST`
 - Auth: body `userKey`
-- Purpose: generate from a preset resolved from the catalog
+- Purpose: apply a template or style preset from the catalog to user-provided source images
 
 Request body:
 
@@ -137,6 +137,8 @@ Request body:
 {
   "userKey": "required",
   "presetId": "required",
+  "sourceImages": ["optional data URL base64 images"],
+  "sourceImageUrls": ["optional remote image URLs"],
   "variableValues": {
     "Optional Placeholder": "value"
   },
@@ -149,6 +151,9 @@ Request body:
 Notes:
 
 - `presetId` must come from `/api/catalog`.
+- Provide at least one `sourceImages` or `sourceImageUrls` entry.
+- Template presets use source images as face references and build the final prompt in redraw mode.
+- Style presets use the first source image as the photo to transform.
 - Invalid `presetId` returns `404` before billing.
 - The API returns `presetType` as `template` or `style`.
 - `modelId` falls back to the preset default, then `seedream45`.

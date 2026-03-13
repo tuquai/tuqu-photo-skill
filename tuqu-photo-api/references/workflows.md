@@ -19,7 +19,7 @@
 | Estimate model cost | `GET /api/model-costs` |
 | Improve a vague prompt | `POST /api/enhance-prompt` |
 | Generate from text or references | `POST /api/v2/generate-image` |
-| Generate from a preset | `GET /api/catalog` -> `POST /api/v2/apply-preset` |
+| Generate from a preset | `GET /api/catalog` -> `POST /api/v2/apply-preset` with source images |
 | Create or manage characters | `/api/characters` |
 | Generate a scene with saved characters | `/api/characters` -> optional `/api/enhance-prompt` -> `POST /api/v2/generate-for-character` |
 | Review recent outputs | `GET /api/history` |
@@ -56,16 +56,18 @@ Use this workflow when the user wants a known template or style.
 
 1. Call `/api/catalog`.
 2. Choose a preset from the returned templates or styles.
-3. Inspect the preset metadata and usage hints.
-4. Build `variableValues` with the exact placeholder names the preset expects.
-5. Optionally call `/api/model-costs` before overriding `modelId`.
-6. Call `/api/v2/apply-preset`.
+3. Inspect the preset metadata, usage hints, and whether it is a `template` or `style`.
+4. Add at least one `sourceImages` or `sourceImageUrls` entry.
+5. Build `variableValues` with the exact placeholder names the preset expects.
+6. Optionally call `/api/model-costs` before overriding `modelId`.
+7. Call `/api/v2/apply-preset`.
 
 Example body:
 
 ```json
 {
   "presetId": "65f0c1d2e3f4a5b6c7d8e9f0",
+  "sourceImageUrls": ["https://example.com/source.jpg"],
   "variableValues": {
     "Subject": "a traveler in a red coat",
     "Mood": "nostalgic and cinematic"
@@ -74,6 +76,8 @@ Example body:
   "ratio": "3:4"
 }
 ```
+
+For template presets, the source images are treated as face-reference photos. For style presets, the first source image is the photo being transformed.
 
 ## Generate with Saved Characters
 

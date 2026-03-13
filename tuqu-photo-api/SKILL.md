@@ -25,7 +25,7 @@ Follow this decision flow:
 
 1. Need available presets, template IDs, style IDs, or usage hints? Call `/api/catalog`.
 2. Need direct text or reference-image generation without preset logic? Optionally call `/api/enhance-prompt`, then call `/api/v2/generate-image`.
-3. Need template or style generation from a preset ID? Call `/api/catalog` first, then call `/api/v2/apply-preset`.
+3. Need template or style generation from a preset ID? Call `/api/catalog` first, prepare at least one source image, then call `/api/v2/apply-preset`.
 4. Need persistent characters or multi-character scene generation? Use `/api/characters`, optionally call `/api/enhance-prompt`, then call `/api/v2/generate-for-character`.
 5. Need prior outputs or audit trail data? Use `/api/history`.
 6. Need pricing or remaining credits? Use `/api/model-costs` and `/api/billing/balance`.
@@ -41,6 +41,7 @@ Read [references/workflows.md](references/workflows.md) for end-to-end task reci
 - Send JSON with `Content-Type: application/json`.
 - Send base64 images as full data URLs such as `data:image/jpeg;base64,...`, not raw base64 fragments.
 - Treat `/api/catalog` as the source of truth for `presetId`, preset type, and variable names. Do not guess placeholders.
+- For `/api/v2/apply-preset`, send at least one `sourceImages` or `sourceImageUrls` entry. Template presets treat them as face-reference images; style presets treat the first one as the image to transform.
 - Use `/api/model-costs` before overriding `modelId` on cost-sensitive jobs.
 - Use `ratio: "Original"` only when at least one reference image is present, because the server measures the first reference image.
 - Prefer `Authorization: Bearer <serviceKey>` for recharge endpoints. Use query or body fallback only when the caller cannot set headers.
@@ -77,8 +78,10 @@ The helper auto-detects both host and auth for the supported endpoints in this s
 ### Generate from a preset
 
 1. Call `/api/catalog` and pick a valid preset.
-2. Fill `variableValues` using the preset's defined placeholders.
-3. Call `/api/v2/apply-preset`.
+2. Inspect whether the preset is a `template` or a `style`.
+3. Provide at least one `sourceImages` or `sourceImageUrls` entry.
+4. Fill `variableValues` only with the preset's defined placeholders.
+5. Call `/api/v2/apply-preset`.
 
 ### Generate with saved characters
 

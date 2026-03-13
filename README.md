@@ -59,7 +59,7 @@ dist/
 - Discover presets and styles: `GET /api/catalog`
 - Improve a prompt before generation: `POST /api/enhance-prompt`
 - Generate from text or reference images: `POST /api/v2/generate-image`
-- Generate from a preset: `GET /api/catalog` then `POST /api/v2/apply-preset`
+- Generate from a preset with source images: `GET /api/catalog` then `POST /api/v2/apply-preset`
 - Generate with saved characters: `/api/characters` then `POST /api/v2/generate-for-character`
 - Check credits: `POST /api/billing/balance`
 - Start a recharge flow: `GET /api/v1/recharge/plans`, then `POST /api/v1/recharge/wechat` or `POST /api/v1/recharge/stripe`
