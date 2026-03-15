@@ -1,6 +1,6 @@
 ---
 name: tuqu-photo-api
-description: Use when interacting with the Tuqu Dream Weaver photo or billing APIs for image generation, preset application, prompt enhancement, catalog or model discovery, character management, history queries, token balance checks, or recharge flows, especially around /api/v2/generate-image, /api/v2/apply-preset, /api/v2/generate-for-character, /api/enhance-prompt, /api/catalog, /api/model-costs, /api/characters, /api/history, /api/billing/balance, /api/v1/recharge/plans, /api/v1/recharge/wechat, or /api/v1/recharge/stripe.
+description: Use when interacting with the Tuqu Dream Weaver photo or billing APIs for image generation, preset application, prompt enhancement, catalog or model discovery, character management, history queries, token balance checks, pricing/model lookup, or recharge flows, especially around /api/v2/generate-image, /api/v2/apply-preset, /api/v2/generate-for-character, /api/enhance-prompt, /api/catalog, /api/model-costs, /api/pricing-config, /api/characters, /api/history, /api/billing/balance, /api/v1/recharge/plans, /api/v1/recharge/wechat, or /api/v1/recharge/stripe.
 ---
 
 # Tuqu Photo API
@@ -31,7 +31,8 @@ Follow this decision flow:
 4. Need persistent characters or multi-character scene generation? Use `/api/characters`, optionally call `/api/enhance-prompt`, then call `/api/v2/generate-for-character`.
 5. Need prior outputs or audit trail data? Use `/api/history`.
 6. Need pricing or remaining credits? Use `/api/model-costs` and `/api/billing/balance`.
-7. Need to top up a project's balance? Call `/api/v1/recharge/plans`, then `/api/v1/recharge/wechat` or `/api/v1/recharge/stripe`.
+7. User specified a model name or wants to know model pricing/coefficients? Call `/api/pricing-config` to list all available models and resolutions, then fuzzy-match the user's input to a valid `models[].id`.
+8. Need to top up a project's balance? Call `/api/v1/recharge/plans`, then `/api/v1/recharge/wechat` or `/api/v1/recharge/stripe`.
 
 Read [references/endpoints.md](references/endpoints.md) for exact request and response fields.
 Read [references/workflows.md](references/workflows.md) for end-to-end task recipes.
@@ -46,6 +47,7 @@ Read [references/workflows.md](references/workflows.md) for end-to-end task reci
 - Treat `/api/catalog` as the source of truth for `presetId`, preset type, and variable names. Do not guess placeholders.
 - For `/api/v2/apply-preset`, send at least one `sourceImages` or `sourceImageUrls` entry. Template presets treat them as face-reference images; style presets treat the first one as the image to transform.
 - Use `/api/model-costs` before overriding `modelId` on cost-sensitive jobs.
+- When the user specifies a model by name, call `/api/pricing-config` first and fuzzy-match against `models[].id` (strip spaces, underscores, hyphens, and lowercase before comparing; e.g. user input `nanobanana2` → matches `nanobanana_2`, `SeedDream5` → matches `seedream5`). Never guess a `modelId`; always resolve it from the pricing config response.
 - Use `ratio: "Original"` only when at least one reference image is present, because the server measures the first reference image.
 - Prefer `Authorization: Bearer <serviceKey>` for recharge endpoints. Use query or body fallback only when the caller cannot set headers.
 - Preserve `imageUrl`, `promptUsed`, `model`, `remainingBalance`, `transactionId`, and `historyItem` when the API returns them.
@@ -59,6 +61,7 @@ Use the helper for repeatable API calls:
 ```bash
 python3 scripts/tuqu_request.py GET /api/catalog --query type=all
 python3 scripts/tuqu_request.py GET /api/model-costs
+python3 scripts/tuqu_request.py GET /api/pricing-config
 python3 scripts/tuqu_request.py POST /api/enhance-prompt \
   --json '{"category":"portrait","prompt":"soft editorial portrait with window light"}'
 python3 scripts/tuqu_request.py POST /api/v2/generate-image \
@@ -95,6 +98,15 @@ The helper auto-detects both host and auth for the supported endpoints in this s
 2. Optionally enhance the scene prompt with `/api/enhance-prompt`.
 3. Call `/api/v2/generate-for-character`.
 4. Save or expose the returned `historyItem` when present.
+
+### Resolve model ID and check pricing
+
+1. Call `GET /api/pricing-config` (no auth required). The response contains `basePoints`, a `models` array, and a `resolutions` array.
+2. Each model entry has `id` (the value to pass as `modelId`), `label`/`labelEn` (display names), `seriesId`/`seriesName` (model family), and `coefficient` (point multiplier relative to `basePoints`).
+3. Each resolution entry has `id` (e.g. `1K`, `2K`, `4K`) and its own `coefficient`.
+4. To fuzzy-match a user-supplied model name: normalize both the input and every `models[].id` by lowercasing and stripping all non-alphanumeric characters, then pick the closest match. Examples: `nanobanana2` → `nanobanana_2`, `seedream 4.5` → `seedream45`.
+5. Compute the estimated point cost as `basePoints × model.coefficient × resolution.coefficient`.
+6. If no model matches after normalization, list the available models from the response and ask the user to clarify.
 
 ### Inspect balance and history
 
