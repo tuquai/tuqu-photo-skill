@@ -1,29 +1,81 @@
 ---
 name: tuqu-photo-api
-description: Use when interacting with the Tuqu Dream Weaver photo or billing APIs for image generation, preset application, prompt enhancement, catalog or model discovery, character management, history queries, token balance checks, pricing/model lookup, or recharge flows, including requests such as 自拍, 照片, 写真, 发张图, 角色出镜, 风景, 物品, or pure edit-only images. Execute supported tasks through scripts/tuqu_request.py instead of ad-hoc HTTP calls.
+description: >-
+  Generate identity-consistent selfies, group photos, and other SFW images for
+  OpenClaw characters via the tuqu.ai API. Use when creating character portraits,
+  selfies (自拍), photo shoots (写真), group shots (合影), or any image generation
+  request where the character's appearance must stay consistent across images.
+  Covers prompt enhancement, preset discovery, character management, billing,
+  and recharge flows. Also handles 照片, 发张图, 角色出镜, 风景, and edit-only images.
+metadata: >-
+  {"clawdbot":{"emoji":"📸","requires":{"anyBins":["python3"]},"os":["linux","darwin","win32"]}}
 ---
 
-# Tuqu Photo API
+# Tuqu Photo API — Identity-Consistent Photo Generation for OpenClaw Characters
 
-## Overview
+## What This Skill Does
 
-Use this skill through `scripts/tuqu_request.py`. For supported paths, the helper picks the correct
-host, applies the correct auth mode, keeps credentials explicit via `--service-key`, and prints
-formatted JSON for direct inspection.
+Generate photos where your OpenClaw character looks **the same every time** — selfies, group shots,
+portraits, stylized scenes, and more — all through tuqu.ai's image generation API. The skill handles
+character identity preservation, prompt enhancement, preset application, balance management, and
+billing.
 
-Keep API semantics in [TUQU_API.md](./TUQU_API.md). Keep exact request and response fields in
+## Installation
+
+### Install via ClawHub
+
+```bash
+clawhub install tuqu-photo-api
+```
+
+Or with the native OpenClaw command:
+
+```bash
+openclaw skills install tuqu-photo-api
+```
+
+### Prerequisites
+
+- **Python 3.8+** must be available on your system (`python3` in PATH).
+- A **tuqu.ai service key** for each OpenClaw role that needs to generate images. Each role can have
+  its own key — the skill passes it explicitly per request via `--service-key`.
+
+### Post-Install Verification
+
+After installation, verify the skill is working:
+
+```bash
+# Check that the helper script runs
+python3 scripts/tuqu_request.py GET /api/catalog --query type=all
+
+# Check available models and pricing
+python3 scripts/tuqu_request.py GET /api/pricing-config
+```
+
+If both commands return JSON, the skill is ready. Authenticated calls (generation, balance, etc.)
+also require `--service-key <your-role-service-key>`.
+
+### Optional Environment Overrides
+
+Only set these when you need to point at a non-default host:
+
+- `TUQU_BASE_URL` — defaults to `https://photo.tuqu.ai`
+- `TUQU_BILLING_BASE_URL` — defaults to `https://billing.tuqu.ai/dream-weaver`
+
+## How It Works
+
+All API calls go through `scripts/tuqu_request.py`. The helper auto-selects the correct host and
+auth mode for each endpoint, keeps credentials explicit via `--service-key`, and prints formatted
+JSON for direct inspection.
+
+Detailed API semantics are in [TUQU_API.md](./TUQU_API.md). Exact request/response fields are in
 [references/endpoints.md](./references/endpoints.md) and task sequences in
 [references/workflows.md](./references/workflows.md).
 
-## Configure Only When Needed
+## Important: Credential Handling
 
-Only set these when overriding defaults:
-
-- `TUQU_BASE_URL=https://photo.tuqu.ai`
-- `TUQU_BILLING_BASE_URL=https://billing.tuqu.ai/dream-weaver`
-
-Authenticated calls must pass `--service-key <role-service-key>` explicitly. Do not rely on a
-shared credential environment variable.
+Authenticated calls must pass `--service-key <role-service-key>` explicitly on every request. Do not
+rely on a shared credential environment variable — different OpenClaw roles can carry different keys.
 
 ## Use These Command Patterns
 

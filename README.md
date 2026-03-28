@@ -1,44 +1,102 @@
 # Tuqu Photo API Skill
 
-A local skill package for working with the Tuqu Dream Weaver photo and billing APIs through a
-Python helper that keeps host selection, auth mapping, and JSON handling consistent.
+Generate identity-consistent selfies, group photos, and other SFW images for OpenClaw characters
+via the [tuqu.ai](https://tuqu.ai) API. Characters look the same across every generated image —
+whether it's a portrait, a group shot, a stylized scene, or a preset-driven creation.
+
+## Installation
+
+### Option 1: Install from ClawHub (recommended)
+
+```bash
+clawhub install tuqu-photo-api
+```
+
+Or with the native OpenClaw command:
+
+```bash
+openclaw skills install tuqu-photo-api
+```
+
+### Option 2: Install from source
+
+```bash
+git clone https://github.com/<your-username>/tuqu-photo-skill.git
+cp -r tuqu-photo-skill ~/.openclaw/skills/tuqu-photo-api
+```
+
+### Prerequisites
+
+| Requirement | Details |
+| --- | --- |
+| Python | 3.8+ (`python3` must be in your PATH) |
+| tuqu.ai service key | One per OpenClaw role — obtain from [tuqu.ai](https://tuqu.ai) |
+| Network access | The skill calls `photo.tuqu.ai` and `billing.tuqu.ai` |
+
+### Verify Installation
+
+```bash
+# Should return a JSON catalog of available presets
+python3 scripts/tuqu_request.py GET /api/catalog --query type=all
+
+# Should return model list and pricing info
+python3 scripts/tuqu_request.py GET /api/pricing-config
+```
+
+If both return valid JSON, the skill is ready. For authenticated calls (image generation, balance
+checks, etc.), also pass your service key:
+
+```bash
+python3 scripts/tuqu_request.py POST /api/billing/balance --service-key <your-service-key>
+```
+
+### Optional: Override Default Hosts
+
+Only needed if you run a custom tuqu.ai deployment:
+
+```bash
+export TUQU_BASE_URL=https://photo.tuqu.ai            # default
+export TUQU_BILLING_BASE_URL=https://billing.tuqu.ai/dream-weaver  # default
+```
 
 ## Quick Start
 
-Set the optional base URL overrides:
+Once installed, just talk to your OpenClaw character naturally:
+
+- **"来张自拍"** — generates a selfie with the current character's face
+- **"拍张合影"** — generates a group photo with the character
+- **"换个赛博朋克风格"** — applies a cyberpunk preset to the generation
+- **"查看余额"** — checks the remaining token balance
+
+The skill automatically classifies requests, picks the right endpoint, and preserves character
+identity when needed.
+
+### Manual API calls
 
 ```bash
-export TUQU_BASE_URL=https://photo.tuqu.ai
-export TUQU_BILLING_BASE_URL=https://billing.tuqu.ai/dream-weaver
-```
-
-Authenticated calls must provide a service key explicitly on each request. Do not rely on a shared
-credential environment variable; different OpenClaw roles can carry different keys.
-
-Run the bundled helper from the skill directory:
-
-```bash
-python3 scripts/tuqu_request.py GET /api/catalog --query type=all
+# Enhance a prompt before generation
 python3 scripts/tuqu_request.py POST /api/enhance-prompt \
   --json '{"category":"portrait","prompt":"soft editorial portrait with window light"}'
-python3 scripts/tuqu_request.py POST /api/v2/generate-image \
-  --service-key <role-service-key> \
-  --json '{"prompt":"cinematic portrait in warm sunset light"}'
-python3 scripts/tuqu_request.py POST /api/billing/balance \
-  --service-key <role-service-key>
-```
 
-The helper auto-selects the correct host and authentication mode for the supported endpoints,
-including `/api/pricing-config`.
+# Generate an image
+python3 scripts/tuqu_request.py POST /api/v2/generate-image \
+  --service-key <your-service-key> \
+  --json '{"prompt":"cinematic portrait in warm sunset light"}'
+
+# Generate with character identity preservation
+python3 scripts/tuqu_request.py POST /api/v2/generate-for-character \
+  --service-key <your-service-key> \
+  --body-file payloads/generate-for-character.json
+```
 
 ## Features
 
-- Covers Tuqu photo generation, preset application, prompt enhancement, catalog lookup, character
+- **Identity-consistent generation** — characters look the same across all generated images
+- Covers photo generation, preset application, prompt enhancement, catalog lookup, character
   management, history, balance, pricing config lookup, and recharge flows
-- Keeps the main `SKILL.md` helper-first so common tasks are expressed as
-  `scripts/tuqu_request.py` commands
-- Stores API semantics separately in `TUQU_API.md`
-- Ships a small Python request helper for repeatable local testing
+- All API calls go through a single helper script (`scripts/tuqu_request.py`) that handles host
+  selection, auth mapping, and JSON formatting
+- API semantics documented separately in `TUQU_API.md` for maintainability
 
 ## Repository Layout
 
