@@ -1,4 +1,4 @@
-# Tuqu Photo API Skill
+# OpenClaw Selfie
 
 Generate identity-consistent selfies, group photos, and other SFW images for OpenClaw characters
 via the [tuqu.ai](https://tuqu.ai) API. Characters look the same across every generated image —
@@ -9,20 +9,20 @@ whether it's a portrait, a group shot, a stylized scene, or a preset-driven crea
 ### Option 1: Install from ClawHub (recommended)
 
 ```bash
-clawhub install tuqu-photo-api
+clawhub install openclaw-selfie
 ```
 
 Or with the native OpenClaw command:
 
 ```bash
-openclaw skills install tuqu-photo-api
+openclaw skills install openclaw-selfie
 ```
 
 ### Option 2: Install from source
 
 ```bash
 git clone https://github.com/<your-username>/tuqu-photo-skill.git
-cp -r tuqu-photo-skill ~/.openclaw/skills/tuqu-photo-api
+cp -r tuqu-photo-skill ~/.openclaw/skills/openclaw-selfie
 ```
 
 ### Prerequisites
@@ -111,7 +111,7 @@ scripts/
 tests/
   test_tuqu_request.py      Helper unit tests
 dist/
-  tuqu-photo-api.skill      Generated skill artifact
+  openclaw-selfie.skill      Generated skill artifact
 ```
 
 ## Configuration

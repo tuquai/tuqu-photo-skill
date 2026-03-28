@@ -1,5 +1,5 @@
 ---
-name: tuqu-photo-api
+name: openclaw-selfie
 description: >-
   Generate identity-consistent selfies, group photos, and other SFW images for
   OpenClaw characters via the tuqu.ai API. Use when creating character portraits,
@@ -11,7 +11,7 @@ metadata: >-
   {"clawdbot":{"emoji":"📸","requires":{"anyBins":["python3"]},"os":["linux","darwin","win32"]}}
 ---
 
-# Tuqu Photo API — Identity-Consistent Photo Generation for OpenClaw Characters
+# OpenClaw Selfie — Identity-Consistent Photo Generation for OpenClaw Characters
 
 ## What This Skill Does
 
@@ -25,13 +25,13 @@ billing.
 ### Install via ClawHub
 
 ```bash
-clawhub install tuqu-photo-api
+clawhub install openclaw-selfie
 ```
 
 Or with the native OpenClaw command:
 
 ```bash
-openclaw skills install tuqu-photo-api
+openclaw skills install openclaw-selfie
 ```
 
 ### Prerequisites
